@@ -2,7 +2,7 @@
 #!desc=京东底栏精简（仅保留首页、购物车、我的）
 
 [Script]
-jd_tabbar = type=http-response,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(basicConfig|serverConfig|welcomeHome|personCenter|readCustomSurfaceList|uniformRecommend|getTabBarConfig),requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/NightGlowww/net-tools-scripts/refs/heads/main/jd_tabbar.js
+jd_tabbar = type=http-response,pattern=^https?:\/\/api\.m\.jd\.com\/client\.action\?functionId=(basicConfig|serverConfig),requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/NightGlowww/net-tools-scripts/refs/heads/main/jd_tabbar.js
 
 [MITM]
 hostname = %APPEND% api.m.jd.com

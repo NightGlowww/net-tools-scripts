@@ -1,65 +1,88 @@
+const $ = new Env('京东底栏精简');
+
 let body = $response.body;
-
 try {
+    console.log('开始处理请求...');
     let obj = JSON.parse(body);
-    let url = $request.url;
 
-    // 获取请求的functionId
-    let functionId = url.match(/functionId=([^&]*)/)?.[1];
+    if (obj.data) {
+        // 1. 处理LaunchOption
+        if (obj.data.LaunchOption) {
+            obj.data.LaunchOption = {
+                "LaunchMainSwitch": {
+                    "launchEndLSWDT": "0",
+                    "LaunchAsyncSwitchIsOn": "1",
+                    "LaunchMainSwitchIsOn": "1"
+                },
+                "TabBar": {
+                    "value": "1"
+                }
+            };
+        }
 
-    switch (functionId) {
-        case 'readCustomSurfaceList':
-            // 处理自定义布局请求
-            if (obj.data && obj.data.list) {
-                // 仅保留首页、购物车、我的
-                obj.data.list = obj.data.list.filter(item =>
-                    ['home', 'cart', 'mine'].includes(item.id) ||
-                    ['首页', '购物车', '我的'].includes(item.name)
-                );
-            }
-            break;
+        // 2. 处理JDTabBar
+        if (obj.data.JDTabBar) {
+            obj.data.JDTabBar = {
+                "refreshNaviAll": { "value": "0" },
+                "immersiveNaviWithB": { "value": "0" },
+                "refreshNaviAuto": { "value": "0" },
+                "ConfigCenter": { "needRequest": "0" },
+                "TabbarConfig": {
+                    "delay": "0",
+                    "enableSound": "0",
+                    "EnableFuzzy": "0",
+                    "enableBackup": "0"
+                },
+                "navTitle": { "value": "0" }
+            };
+        }
 
-        case 'basicConfig':
-        case 'serverConfig':
-            // 基础配置处理
-            if (obj.data && obj.data.LaunchOption) {
-                obj.data.LaunchOption = {
-                    "TabBar": { "value": "1" },
-                    "LaunchMainSwitch": {
-                        "launchEndLSWDT": "0",
-                        "LaunchAsyncSwitchIsOn": "1",
-                        "LaunchMainSwitchIsOn": "1"
-                    }
+        // 3. 处理TaroNative
+        if (obj.data.TaroNative) {
+            if (obj.data.TaroNative.preDecompression) {
+                obj.data.TaroNative.preDecompression.preUnzipModule = {
+                    "homePageUIIdleInit": ["home", "cart", "mine"]
                 };
             }
+        }
 
-            if (obj.data && obj.data.JDTabBar) {
-                obj.data.JDTabBar = {
-                    "refreshNaviAll": { "value": "1" },
-                    "immersiveNaviWithB": { "value": "0" },
-                    "refreshNaviAuto": { "value": "1" },
-                    "ConfigCenter": { "needRequest": "0" },
-                    "TabbarConfig": {
-                        "delay": "0",
-                        "enableSound": "0",
-                        "EnableFuzzy": "1",
-                        "enableBackup": "0"
-                    }
-                };
-            }
+        // 4. 清理其他配置
+        const removeKeys = [
+            'HourlyGo',
+            'orderCenter',
+            'discoveryConfig',
+            'iconFunctionConfig',
+            'dynamicTabList',
+            'JDTabBar.navTitle'
+        ];
 
-            // 清理其他可能影响的配置
-            if (obj.data) {
-                ['orderCenter', 'discoveryConfig', 'iconFunctionConfig', 'dynamicTabList'].forEach(key => {
-                    if (obj.data[key]) delete obj.data[key];
-                });
+        removeKeys.forEach(key => {
+            if (key.includes('.')) {
+                const [parent, child] = key.split('.');
+                if (obj.data[parent] && obj.data[parent][child]) {
+                    delete obj.data[parent][child];
+                }
+            } else if (obj.data[key]) {
+                delete obj.data[key];
             }
-            break;
+        });
+
+        // 5. 强制设置底栏项目
+        obj.data.bottomTabList = ["home", "cart", "mine"];
+
+        // 6. 禁用动态加载
+        if (obj.data.JDTabBar) {
+            obj.data.JDTabBar.refreshNaviAuto = { "value": "0" };
+            obj.data.JDTabBar.ConfigCenter = { "needRequest": "0" };
+        }
     }
 
     body = JSON.stringify(obj);
+    console.log('处理完成');
 } catch (e) {
     console.log(`京东底栏处理错误: ${e.message}`);
 }
 
 $done({ body });
+
+function Env(t) { return new class { constructor(t) { this.name = t } log(t) { console.log(`[${this.name}] ${t}`) } }(t) }
